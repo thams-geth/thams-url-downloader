@@ -195,6 +195,164 @@
             font-size: 12px;
             opacity: 0.9;
         }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .modal-close {
+            float: right;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .cookies-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .cookies-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            cursor: pointer;
+            color: #667eea;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .cookies-toggle:hover {
+            text-decoration: underline;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .upload-area:hover {
+            background: #f5f7ff;
+        }
+
+        .upload-area.dragover {
+            background: #e8ecff;
+        }
+
+        .upload-area input {
+            display: none;
+        }
+
+        .cookie-status {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            background: #f5f5f5;
+        }
+
+        .cookie-status.active {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 4px solid #2e7d32;
+        }
+
+        .cookie-status.inactive {
+            background: #fff3e0;
+            color: #e65100;
+            border-left: 4px solid #e65100;
+        }
+
+        .instructions {
+            margin-top: 15px;
+            padding: 12px;
+            background: #e3f2fd;
+            border-left: 4px solid #1976d2;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #0d47a1;
+            line-height: 1.6;
+        }
+
+        .remove-btn {
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .remove-btn:hover {
+            background: #c82333;
+        }
     </style>
 </head>
 <body>
@@ -236,6 +394,58 @@
                 <li>Twitter videos</li>
                 <li>Images & documents</li>
             </ul>
+        </div>
+
+        <div class="cookies-section">
+            <div class="cookies-toggle" onclick="toggleCookiesModal()">
+                🍪 Manage Cookies (YouTube/Instagram)
+                <span style="font-size: 16px;">+</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cookies Modal -->
+    <div id="cookiesModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeCookiesModal()">&times;</span>
+            <div class="modal-header">🍪 Manage Cookies</div>
+
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="switchTab('youtube')">YouTube</button>
+                <button class="tab-btn" onclick="switchTab('instagram')">Instagram</button>
+            </div>
+
+            <div id="youtubeTab" class="tab-content">
+                <div class="upload-area" onclick="document.getElementById('youtubeFile').click();" ondrop="handleDrop(event, 'youtube')" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                    <p style="font-size: 14px; color: #667eea; margin-bottom: 5px;">📤 Click to upload or drag & drop</p>
+                    <p style="font-size: 12px; color: #999;">Netscape cookies.txt file (exported from browser)</p>
+                    <input type="file" id="youtubeFile" accept=".txt" onchange="uploadCookies('youtube')">
+                </div>
+                <div id="youtubeStatus" class="cookie-status"></div>
+                <div class="instructions">
+                    <strong>How to export YouTube cookies:</strong><br>
+                    1. Open <a href="https://youtube.com" target="_blank" style="color: #1976d2;">YouTube</a> and log in<br>
+                    2. Use "Cookie-Editor" extension or browser dev tools<br>
+                    3. Export as Netscape format (.txt)<br>
+                    4. Upload the file here
+                </div>
+            </div>
+
+            <div id="instagramTab" class="tab-content" style="display: none;">
+                <div class="upload-area" onclick="document.getElementById('instagramFile').click();" ondrop="handleDrop(event, 'instagram')" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                    <p style="font-size: 14px; color: #667eea; margin-bottom: 5px;">📤 Click to upload or drag & drop</p>
+                    <p style="font-size: 12px; color: #999;">Netscape cookies.txt file (exported from browser)</p>
+                    <input type="file" id="instagramFile" accept=".txt" onchange="uploadCookies('instagram')">
+                </div>
+                <div id="instagramStatus" class="cookie-status"></div>
+                <div class="instructions">
+                    <strong>How to export Instagram cookies:</strong><br>
+                    1. Open <a href="https://instagram.com" target="_blank" style="color: #1976d2;">Instagram</a> and log in<br>
+                    2. Use "Cookie-Editor" extension or browser dev tools<br>
+                    3. Export as Netscape format (.txt)<br>
+                    4. Upload the file here
+                </div>
+            </div>
         </div>
     </div>
 
@@ -313,6 +523,134 @@
             status.style.display = 'none';
             downloadBtn.style.display = 'none';
             downloadInfo.style.display = 'none';
+        });
+
+        // Cookie management functions
+        const cookiesModal = document.getElementById('cookiesModal');
+
+        function toggleCookiesModal() {
+            if (cookiesModal.classList.contains('show')) {
+                closeCookiesModal();
+            } else {
+                openCookiesModal();
+            }
+        }
+
+        function openCookiesModal() {
+            cookiesModal.classList.add('show');
+            checkCookiesStatus();
+        }
+
+        function closeCookiesModal() {
+            cookiesModal.classList.remove('show');
+        }
+
+        function switchTab(platform) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById(platform + 'Tab').style.display = 'block';
+            event.target.classList.add('active');
+        }
+
+        async function checkCookiesStatus() {
+            try {
+                const response = await fetch('/api/cookies-status');
+                const data = await response.json();
+
+                updateCookieStatus('youtube', data.youtube);
+                updateCookieStatus('instagram', data.instagram);
+            } catch (error) {
+                console.error('Error checking cookies:', error);
+            }
+        }
+
+        function updateCookieStatus(platform, hasCookes) {
+            const statusEl = document.getElementById(platform + 'Status');
+            if (hasCookes) {
+                statusEl.className = 'cookie-status active';
+                statusEl.innerHTML = `✅ Cookies installed for ${platform}!<br><button class="remove-btn" onclick="removeCookies('${platform}')">Remove Cookies</button>`;
+            } else {
+                statusEl.className = 'cookie-status inactive';
+                statusEl.textContent = `⚠️ No cookies installed for ${platform}`;
+            }
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('dragover');
+        }
+
+        function handleDragLeave(event) {
+            event.currentTarget.classList.remove('dragover');
+        }
+
+        function handleDrop(event, platform) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('dragover');
+
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                const fileInput = document.getElementById(platform + 'File');
+                fileInput.files = files;
+                uploadCookies(platform);
+            }
+        }
+
+        async function uploadCookies(platform) {
+            const fileInput = document.getElementById(platform + 'File');
+            const file = fileInput.files[0];
+
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('cookies', file);
+            formData.append('platform', platform);
+
+            try {
+                const response = await fetch('/api/upload-cookies', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    updateCookieStatus(platform, true);
+                    fileInput.value = '';
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to upload cookies'));
+                }
+            } catch (error) {
+                alert('Error uploading cookies: ' + error.message);
+            }
+        }
+
+        async function removeCookies(platform) {
+            if (!confirm(`Remove ${platform} cookies?`)) return;
+
+            try {
+                const response = await fetch('/api/remove-cookies', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ platform })
+                });
+
+                if (response.ok) {
+                    updateCookieStatus(platform, false);
+                } else {
+                    alert('Error removing cookies');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Close modal when clicking outside
+        window.addEventListener('click', (event) => {
+            if (event.target === cookiesModal) {
+                closeCookiesModal();
+            }
         });
     </script>
 </body>

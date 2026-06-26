@@ -9,10 +9,62 @@ import http.cookiejar
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max
 TEMP_DIR = tempfile.gettempdir()
+COOKIES_DIR = os.path.join(app.instance_path, 'cookies') if hasattr(app, 'instance_path') else os.path.join(os.getcwd(), 'instance', 'cookies')
+os.makedirs(COOKIES_DIR, exist_ok=True)
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/api/cookies-status', methods=['GET'])
+def cookies_status():
+    youtube_exists = os.path.exists(os.path.join(COOKIES_DIR, 'youtube_cookies.txt'))
+    instagram_exists = os.path.exists(os.path.join(COOKIES_DIR, 'instagram_cookies.txt'))
+    return jsonify({
+        'youtube': youtube_exists,
+        'instagram': instagram_exists
+    })
+
+@app.route('/api/upload-cookies', methods=['POST'])
+def upload_cookies():
+    platform = request.form.get('platform', '').lower()
+
+    if platform not in ['youtube', 'instagram']:
+        return jsonify({'error': 'Invalid platform. Use: youtube or instagram'}), 400
+
+    if 'cookies' not in request.files:
+        return jsonify({'error': 'No cookies file provided'}), 400
+
+    file = request.files['cookies']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+
+    try:
+        cookies_path = os.path.join(COOKIES_DIR, f'{platform}_cookies.txt')
+        file.save(cookies_path)
+        return jsonify({
+            'success': True,
+            'message': f'{platform.capitalize()} cookies uploaded successfully!',
+            'platform': platform
+        })
+    except Exception as e:
+        return jsonify({'error': f'Failed to upload cookies: {str(e)}'}), 500
+
+@app.route('/api/remove-cookies', methods=['POST'])
+def remove_cookies():
+    platform = request.json.get('platform', '').lower()
+
+    if platform not in ['youtube', 'instagram']:
+        return jsonify({'error': 'Invalid platform'}), 400
+
+    try:
+        cookies_path = os.path.join(COOKIES_DIR, f'{platform}_cookies.txt')
+        if os.path.exists(cookies_path):
+            os.remove(cookies_path)
+            return jsonify({'success': True, 'message': f'{platform.capitalize()} cookies removed'})
+        return jsonify({'error': 'No cookies found for this platform'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/download', methods=['POST'])
 def download():
@@ -26,6 +78,9 @@ def download():
         return jsonify({'error': 'Invalid URL format'}), 400
 
     try:
+        is_youtube = any(domain in url for domain in ['youtube.com', 'youtu.be'])
+        is_instagram = 'instagram.com' in url
+
         ydl_opts = {
             'format': 'best',
             'outtmpl': os.path.join(TEMP_DIR, '%(title)s.%(ext)s'),
@@ -44,8 +99,16 @@ def download():
             }
         }
 
+        # Add cookies if available
+        youtube_cookies = os.path.join(COOKIES_DIR, 'youtube_cookies.txt')
+        instagram_cookies = os.path.join(COOKIES_DIR, 'instagram_cookies.txt')
+
+        if is_youtube and os.path.exists(youtube_cookies):
+            ydl_opts['cookiefile'] = youtube_cookies
+        elif is_instagram and os.path.exists(instagram_cookies):
+            ydl_opts['cookiefile'] = instagram_cookies
+
         # Check if URL is YouTube
-        is_youtube = any(domain in url for domain in ['youtube.com', 'youtu.be'])
         if is_youtube:
             ydl_opts['format'] = 'best[height<=720]'
             ydl_opts['socket_timeout'] = 60
