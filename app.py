@@ -91,15 +91,10 @@ def download():
             'no_warnings': True,
             'socket_timeout': 30,
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
                 'Accept-Language': 'en-US,en;q=0.9',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             },
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['web'],
-                    'player_skip': ['js', 'webpage']
-                }
-            }
         }
 
         # Add cookies if available
@@ -108,15 +103,22 @@ def download():
 
         if is_youtube and os.path.exists(youtube_cookies):
             ydl_opts['cookiefile'] = youtube_cookies
-        elif is_instagram and os.path.exists(instagram_cookies):
+
+        if is_instagram and os.path.exists(instagram_cookies):
             ydl_opts['cookiefile'] = instagram_cookies
 
-        # Check if URL is YouTube
+        # YouTube-specific configuration
         if is_youtube:
-            ydl_opts['format'] = 'best[height<=720]'
+            ydl_opts['format'] = 'best[height<=720]/best'
             ydl_opts['socket_timeout'] = 60
-            ydl_opts['retries'] = 5
+            ydl_opts['retries'] = 10
             ydl_opts['skip_unavailable_fragments'] = True
+            ydl_opts['extractor_args'] = {
+                'youtube': {
+                    'player_client': ['web', 'android'],
+                    'player_skip': ['js'],
+                }
+            }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             try:
@@ -146,10 +148,10 @@ def download():
                 'code': 'INSTAGRAM_BLOCKED'
             }), 429
 
-        if 'youtube' in error_msg.lower() and 'sign in' in error_msg.lower():
+        if 'youtube' in error_msg.lower() or (is_youtube and 'Sign in' in error_msg):
             return jsonify({
-                'error': 'YouTube requires bot verification.',
-                'details': 'Try: 1) Upload your YouTube cookies, 2) Wait 5 minutes and retry, 3) Try with a different YouTube URL',
+                'error': '⚠️ YouTube is blocking this server (cloud IP)',
+                'details': '<strong>Solution: Upload YouTube cookies</strong><br>1. Click "🍪 Manage Cookies" → YouTube tab<br>2. Export cookies from youtube.com using Cookie-Editor extension<br>3. Upload the .txt file<br><br><strong>Why?</strong> YouTube blocks automated downloads from cloud servers for security. Your cookies authenticate the request as a real user.',
                 'code': 'YOUTUBE_BOT_CHECK'
             }), 429
 
