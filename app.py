@@ -11,8 +11,12 @@ import re
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max
-TEMP_DIR = tempfile.gettempdir()
-COOKIES_DIR = os.path.join(app.instance_path, 'cookies') if hasattr(app, 'instance_path') else os.path.join(os.getcwd(), 'instance', 'cookies')
+
+# Use persistent storage for downloads (not system temp)
+DOWNLOADS_DIR = os.path.join(os.getcwd(), 'downloads')
+os.makedirs(DOWNLOADS_DIR, exist_ok=True)
+
+COOKIES_DIR = os.path.join(os.getcwd(), 'instance', 'cookies')
 os.makedirs(COOKIES_DIR, exist_ok=True)
 
 @app.route('/')
@@ -86,7 +90,7 @@ def download():
 
         ydl_opts = {
             'format': 'best',
-            'outtmpl': os.path.join(TEMP_DIR, '%(title)s.%(ext)s'),
+            'outtmpl': os.path.join(DOWNLOADS_DIR, '%(title)s.%(ext)s'),
             'quiet': True,
             'no_warnings': True,
             'socket_timeout': 30,
@@ -163,11 +167,11 @@ def download():
 @app.route('/api/file/<path:filename>', methods=['GET'])
 def get_file(filename):
     try:
-        filepath = os.path.join(TEMP_DIR, secure_filename(filename))
+        filepath = os.path.join(DOWNLOADS_DIR, secure_filename(filename))
         if os.path.exists(filepath):
             mimetype, _ = mimetypes.guess_type(filepath)
             return send_file(filepath, as_attachment=True, mimetype=mimetype)
-        return jsonify({'error': 'File not found'}), 404
+        return jsonify({'error': 'File not found or expired'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
