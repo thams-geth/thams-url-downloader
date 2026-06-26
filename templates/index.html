@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thams URL Downloader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #555;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input[type="url"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+
+        input[type="url"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.loading {
+            display: block;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #1976d2;
+        }
+
+        .status.success {
+            display: block;
+            background: #e8f5e9;
+            color: #388e3c;
+            border-left: 4px solid #388e3c;
+        }
+
+        .status.error {
+            display: block;
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+
+        .download-btn {
+            margin-top: 12px;
+            background: #388e3c;
+            display: none;
+        }
+
+        .download-btn:hover {
+            box-shadow: 0 10px 20px rgba(56, 142, 60, 0.3);
+        }
+
+        .download-info {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #666;
+            display: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .features {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .feature-list {
+            list-style: none;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .feature-list li {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .feature-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .error-details {
+            margin-top: 8px;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📥 Thams URL Downloader</h1>
+        <p class="subtitle">Download videos, images & files from any URL</p>
+
+        <form id="downloadForm">
+            <div class="input-group">
+                <label for="urlInput">Enter URL:</label>
+                <input
+                    type="url"
+                    id="urlInput"
+                    placeholder="https://youtube.com/watch?v=... or any URL"
+                    required
+                    autocomplete="off"
+                >
+            </div>
+
+            <button type="submit" id="submitBtn">
+                <span id="btnText">Download</span>
+            </button>
+        </form>
+
+        <div class="status" id="status"></div>
+        <div class="download-info" id="downloadInfo"></div>
+        <button class="download-btn" id="downloadBtn" style="display: none;">
+            ⬇ Download File
+        </button>
+
+        <div class="features">
+            <p style="font-size: 12px; color: #999; text-align: center; margin-bottom: 12px;">
+                Supported platforms:
+            </p>
+            <ul class="feature-list">
+                <li>YouTube videos</li>
+                <li>Instagram posts & reels</li>
+                <li>TikTok videos</li>
+                <li>Twitter videos</li>
+                <li>Images & documents</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('downloadForm');
+        const urlInput = document.getElementById('urlInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const status = document.getElementById('status');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const downloadInfo = document.getElementById('downloadInfo');
+        let currentFilename = null;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const url = urlInput.value.trim();
+
+            if (!url) {
+                showStatus('Please enter a URL', 'error');
+                return;
+            }
+
+            downloadBtn.style.display = 'none';
+            downloadInfo.style.display = 'none';
+            showStatus('⏳ Downloading... This may take a minute', 'loading');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span>Processing...';
+
+            try {
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    currentFilename = data.filename;
+                    showStatus(
+                        `✅ Ready! File: ${data.title}`,
+                        'success'
+                    );
+                    downloadInfo.style.display = 'block';
+                    downloadInfo.textContent = `📄 ${data.filename}`;
+                    downloadBtn.style.display = 'block';
+                } else {
+                    showStatus(
+                        `❌ ${data.error || 'Download failed'}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showStatus(
+                    `❌ Error: ${error.message}`,
+                    'error'
+                );
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span id="btnText">Download</span>';
+            }
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            if (currentFilename) {
+                window.location.href = `/api/file/${encodeURIComponent(currentFilename)}`;
+            }
+        });
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        urlInput.addEventListener('input', () => {
+            status.style.display = 'none';
+            downloadBtn.style.display = 'none';
+            downloadInfo.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
