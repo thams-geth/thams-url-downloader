@@ -5,6 +5,9 @@ from werkzeug.utils import secure_filename
 import tempfile
 import mimetypes
 import http.cookiejar
+import subprocess
+import json
+import re
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max
@@ -116,30 +119,44 @@ def download():
             ydl_opts['skip_unavailable_fragments'] = True
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info)
+            try:
+                info = ydl.extract_info(url, download=True)
+                filename = ydl.prepare_filename(info)
 
-            return jsonify({
-                'success': True,
-                'filename': os.path.basename(filename),
-                'path': filename,
-                'title': info.get('title', 'download')
-            })
+                return jsonify({
+                    'success': True,
+                    'filename': os.path.basename(filename),
+                    'path': filename,
+                    'title': info.get('title', 'download')
+                })
+            except Exception as inner_e:
+                # Try alternative Instagram method
+                if is_instagram and 'login required' in str(inner_e).lower():
+                    return try_instagram_alternative(url)
+                raise
 
     except Exception as e:
         error_msg = str(e)
 
         # Handle specific platform errors
-        if 'Instagram' in error_msg and ('login required' in error_msg or 'rate-limit' in error_msg):
-            return jsonify({'error': 'Instagram requires authentication. Try: 1) Use a direct video link, 2) Try after 1 hour, or 3) Use instagram-specific downloader'}), 429
+        if 'Instagram' in error_msg and ('login required' in error_msg or 'rate-limit' in error_msg or 'not available' in error_msg):
+            return jsonify({
+                'error': 'Instagram is blocking this download.',
+                'details': 'Instagram blocks automated downloads. Try these alternatives:\n1. Upload cookies from an authenticated Instagram session\n2. Use https://www.instagram.com/p/[POST_ID]/ format instead\n3. Try downloading directly from the video file if available\n4. Use external Instagram downloader tools',
+                'code': 'INSTAGRAM_BLOCKED'
+            }), 429
 
         if 'youtube' in error_msg.lower() and 'sign in' in error_msg.lower():
-            return jsonify({'error': 'YouTube requires verification. Try: 1) Wait 5 minutes, 2) Use a different YouTube video, or 3) Try a different URL format'}), 429
+            return jsonify({
+                'error': 'YouTube requires bot verification.',
+                'details': 'Try: 1) Upload your YouTube cookies, 2) Wait 5 minutes and retry, 3) Try with a different YouTube URL',
+                'code': 'YOUTUBE_BOT_CHECK'
+            }), 429
 
         if 'No such file or directory' in error_msg or 'does not appear to be a valid' in error_msg:
             return jsonify({'error': 'Invalid URL or content not available'}), 400
 
-        return jsonify({'error': f'Download failed: {error_msg[:100]}'}), 400
+        return jsonify({'error': f'Download failed: {error_msg[:150]}'}), 400
 
 @app.route('/api/file/<path:filename>', methods=['GET'])
 def get_file(filename):
